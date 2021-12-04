@@ -37,6 +37,8 @@ You will be prompted if you want to register the handler when you first run the 
 
 The app doesn't yet have an icon, I'm yet to make one for it.
 
+You can join my Discord <a href="https://discord.shimmymysherbet.com/">Here</a>
+
 # Downloads
 
 Download via <a href="https://github.com/ShimmyMySherbet/BeatSaverDl/releases">Releases</a>
