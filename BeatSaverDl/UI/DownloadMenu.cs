@@ -16,20 +16,43 @@ namespace BeatSaverDl
     {
         public WorkingWatcher Work;
 
+        public bool DownloadListOverflowing => FlowItems.VerticalScroll.Visible;
+
+        public int DownloadListWidthBuffer => DownloadListOverflowing ? 35 : 15;
+
         public DownloadMenu()
         {
             InitializeComponent();
             Work = new WorkingWatcher(onWorkStateUpdate);
             SizeChanged += sizeChanged;
+            this.Layout += DownloadMenu_Layout;
+            Load += DownloadMenu_Load;
+        }
+
+        private void DownloadMenu_Load(object sender, EventArgs e)
+        {
+        }
+
+        private void DownloadMenu_Layout(object sender, LayoutEventArgs e)
+        {
+            UpdateSizeLayout();
         }
 
         private void sizeChanged(object sender, EventArgs e)
         {
+            UpdateSizeLayout();
+        }
+
+        public void UpdateSizeLayout()
+        {
             FlowItems.SuspendLayout();
+
             foreach (var ct in FlowItems.Controls.OfType<Control>())
             {
-                ct.Width = FlowItems.Width - 15;
+                ct.Width = FlowItems.Width - DownloadListWidthBuffer;
             }
+
+            FlowItems.ResumeLayout();
         }
 
         public async Task StartNewDownload(string mapID)
@@ -47,6 +70,7 @@ namespace BeatSaverDl
                           ct.Width = FlowItems.Width - 15;
                           ct.Anchor = AnchorStyles.Left | AnchorStyles.Right;
                           FlowItems.Controls.Add(ct);
+                          UpdateSizeLayout();
                       }));
 
                 download.StartDownload();
@@ -55,6 +79,7 @@ namespace BeatSaverDl
 
         private void OnWindowLoad(object sender, EventArgs e)
         {
+            Program.Icon.SendWindowEnabled(Icon);
             ThreadPool.QueueUserWorkItem(async (_) =>
             {
                 string[] maps;

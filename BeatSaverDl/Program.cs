@@ -24,6 +24,8 @@ namespace BeatSaverDl
         public static bool NotifyDownload = false;
         public static string BeatSaberPath;
 
+        public static IconManager Icon;
+
         [STAThread]
         private static void Main(string[] args)
         {
@@ -49,6 +51,8 @@ namespace BeatSaverDl
             {
                 newInstall = true;
             }
+            Icon = new IconManager();
+
             Settings = new INIFile(settingsFile);
 
             Settings.Enforce("AutoFocus", "false");
@@ -110,6 +114,7 @@ namespace BeatSaverDl
             AutoFocus = bool.Parse(Settings["AutoFocus"]);
             NotifyDownload = bool.Parse(Settings["NotifyDownloaded"]);
             BeatSaberPath = Settings["BeatSaberPath"];
+            Icon.SendUpdateEnabled(NotifyDownload);
         }
 
         public static void NotifySelf()

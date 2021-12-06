@@ -1,9 +1,9 @@
-﻿using BeatSaverDl.APIs.Common;
-using BeatSaverDl.Models;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
+using BeatSaverDl.APIs.Common;
+using BeatSaverDl.Models;
 
 namespace BeatSaverDl.UI
 {
@@ -16,6 +16,7 @@ namespace BeatSaverDl.UI
         public ActiveDownloadComponent()
         {
             InitializeComponent();
+            ContextMenuStrip = cmxControl;
         }
 
         public ActiveDownloadComponent(Image icon, MapDownloadTask downloadTask)
@@ -31,7 +32,19 @@ namespace BeatSaverDl.UI
             lblDif.Text = string.Join(" ", Map.Difficulties);
             downloadTask.DownloadProgress += DownloadTask_DownloadProgressUpdated;
             DownloadTask.DownloadComplete += DownloadTask_DownloadComplete;
+            downloadTask.DownloadFailed += DownloadTask_DownloadFailed;
             progDownload.Maximum = 100;
+        }
+
+        private void DownloadTask_DownloadFailed(MapDownloadTask task)
+        {
+            Invoke(new Action(() =>
+            {
+                if (Program.NotifyDownload)
+                {
+                    Program.Icon.SendDownloadFailed(Map, DownloadTask.Retries);
+                }
+            }));
         }
 
         private void DownloadTask_DownloadComplete(MapDownloadTask task)
@@ -41,6 +54,10 @@ namespace BeatSaverDl.UI
             Invoke(new Action(() =>
             {
                 progDownload.Visible = false;
+                if (Program.NotifyDownload)
+                {
+                    Program.Icon.SendDownloadFinished(Map);
+                }
             }));
         }
 
