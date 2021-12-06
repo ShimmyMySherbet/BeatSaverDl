@@ -13,9 +13,13 @@ namespace BeatSaverDl.Models
 
         private MarshalAllocMemoryStream DownloadBuffer;
 
-        public event MapDownloadProgress DownloadProgress;
+        public event MapDownloadUpdatedArgs<double> DownloadProgress;
+        public event MapDownloadUpdatedArgs DownloadComplete;
+        public event MapDownloadUpdatedArgs<Exception> DownloadError;
 
-        public event MapDownloadComplete DownloadComplete;
+        public int Retries { get; private set; } = 0;
+        public int MaxRetries { get; } = 5;
+        public bool Complete { get; private set; } = false;
 
         private int BufferSize = 1024;
 
@@ -37,49 +41,64 @@ namespace BeatSaverDl.Models
 
         private async Task Download()
         {
-            var request = WebRequest.CreateHttp(Map.DownloadURL);
-            request.Method = "GET";
-            using (var response = await request.GetResponseAsync())
-            using (var network = response.GetResponseStream())
+            while (Retries <= MaxRetries && !Complete)
             {
-                DownloadBuffer = new MarshalAllocMemoryStream((int)response.ContentLength);
-
-                var buffer = new byte[BufferSize];
-                Downloaded = 0;
-                DownloadSize = (int)response.ContentLength;
-                while (DownloadSize - Downloaded > 0)
+                try
                 {
-                    var rem = DownloadSize - Downloaded;
-                    var blockSize = rem > BufferSize ? BufferSize : rem;
 
-                    var read = await network.ReadAsync(buffer, 0, blockSize);
-                    Downloaded += read;
-                    if (read == 0)
+                    var request = WebRequest.CreateHttp(Map.DownloadURL);
+                    request.Method = "GET";
+                    using (var response = await request.GetResponseAsync())
+                    using (var network = response.GetResponseStream())
                     {
-                        break;
+                        DownloadBuffer = new MarshalAllocMemoryStream((int)response.ContentLength);
+
+                        var buffer = new byte[BufferSize];
+                        Downloaded = 0;
+                        DownloadSize = (int)response.ContentLength;
+                        while (DownloadSize - Downloaded > 0)
+                        {
+                            var rem = DownloadSize - Downloaded;
+                            var blockSize = rem > BufferSize ? BufferSize : rem;
+
+                            var read = await network.ReadAsync(buffer, 0, blockSize);
+                            Downloaded += read;
+                            if (read == 0)
+                            {
+                                break;
+                            }
+                            await DownloadBuffer.WriteAsync(buffer, 0, read);
+                            NotifyBlockDownload();
+                        }
                     }
-                    await DownloadBuffer.WriteAsync(buffer, 0, read);
-                    NotifyBlockDownload();
+
+                    var outDirName = Path.Combine(Program.BeatSaberPath, "Beat Saber_Data", "CustomLevels", $"{Map.ID} ({Map.Name} - {Map.Author})");
+
+                    if (Directory.Exists(outDirName))
+                    {
+                        Directory.Delete(outDirName, true);
+                    }
+                    Directory.CreateDirectory(outDirName);
+
+                    DownloadBuffer.Position = 0;
+                    using (var zip = new ZipArchive(DownloadBuffer))
+                    {
+                        zip.ExtractToDirectory(outDirName);
+                    }
+
+                    Complete = true;
+                    DownloadComplete?.Invoke(this);
+                    DownloadBuffer.Dispose();
+                    DownloadBuffer = null;
+                }
+                catch (Exception ex)
+                {
+                    Retries++;
+                    DownloadBuffer?.Dispose();
+                    DownloadError?.Invoke(this, ex);
+                    DownloadProgress?.Invoke(this, 0);
                 }
             }
-
-            var outDirName = Path.Combine(Program.BeatSaberPath, "Beat Saber_Data", "CustomLevels", $"{Map.ID} ({Map.Name} - {Map.Author})");
-
-            if (Directory.Exists(outDirName))
-            {
-                Directory.Delete(outDirName, true);
-            }
-            Directory.CreateDirectory(outDirName);
-
-            DownloadBuffer.Position = 0;
-            using (var zip = new ZipArchive(DownloadBuffer))
-            {
-                zip.ExtractToDirectory(outDirName);
-            }
-
-            DownloadComplete?.Invoke(this);
-            DownloadBuffer.Dispose();
-            DownloadBuffer = null;
         }
 
         private void NotifyBlockDownload()
