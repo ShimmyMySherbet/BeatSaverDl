@@ -1,10 +1,9 @@
-﻿using BeatSaverDl.APIs.Common;
-using System;
+﻿using System;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using BeatSaverDl.APIs.Common;
 
 namespace BeatSaverDl.APIs.BeatSaver
 {
@@ -41,16 +40,14 @@ namespace BeatSaverDl.APIs.BeatSaver
 
         public static async Task<BeatSaverMap> GetMap(string id)
         {
-            string urlSegment = "/maps/id/";
-
-            BeatSaverMap map = new BeatSaverMap
+            var map = new BeatSaverMap
             {
                 Success = false
             };
 
             try
             {
-                BeatSaverApiResponse beatsaver = await GetResponse(BeatSaverURLPrefix + urlSegment + id);
+                BeatSaverApiResponse beatsaver = await GetResponse(BeatSaverURLPrefix + "/maps/id/" + id);
                 if (beatsaver != null && beatsaver.map != null)
                 {
                     map.response = beatsaver;
@@ -73,28 +70,22 @@ namespace BeatSaverDl.APIs.BeatSaver
 
         private static async Task<BeatSaverApiResponse> GetResponse(string url)
         {
-            BeatSaverApiResponse response = new BeatSaverApiResponse();
+            var mapResponse = new BeatSaverApiResponse();
             try
             {
-                var HttpClient = new HttpClient();
-                var resp = await HttpClient.GetAsync(url);
-                response.statusCode = resp.StatusCode;
-                string body = await resp.Content.ReadAsStringAsync();
-
-                if (response.statusCode == HttpStatusCode.OK)
+                var request = WebRequest.Create(url);
+                request.Method = "GET";
+                using (var response = await request.GetResponseAsync())
+                using (var network = response.GetResponseStream())
                 {
-                    response.map = JsonSerializer.Deserialize<BeatSaverApiResponseMap>(body);
-                    return response;
-                }
-                else
-                {
-                    return response;
+                    mapResponse.map = await JsonSerializer.DeserializeAsync<BeatSaverApiResponseMap>(network);
                 }
             }
             catch (Exception)
             {
                 return null;
             }
+            return mapResponse;
         }
     }
 }
