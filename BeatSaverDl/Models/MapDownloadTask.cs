@@ -2,6 +2,7 @@
 using System.IO;
 using System.IO.Compression;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using BeatSaverDl.APIs.Common;
 
@@ -13,9 +14,14 @@ namespace BeatSaverDl.Models
 
         private MarshalAllocMemoryStream DownloadBuffer;
 
-        public event MapDownloadUpdatedArgs<double> DownloadProgress;
+        public event MapDownloadUpdatedArgs<float> DownloadProgress;
+
         public event MapDownloadUpdatedArgs DownloadComplete;
+        public event MapDownloadUpdatedArgs DownloadFailed;
+
         public event MapDownloadUpdatedArgs<Exception> DownloadError;
+
+        private CancellationTokenSource TokenSource = new CancellationTokenSource();
 
         public int Retries { get; private set; } = 0;
         public int MaxRetries { get; } = 5;
@@ -45,7 +51,6 @@ namespace BeatSaverDl.Models
             {
                 try
                 {
-
                     var request = WebRequest.CreateHttp(Map.DownloadURL);
                     request.Method = "GET";
                     using (var response = await request.GetResponseAsync())
@@ -99,6 +104,10 @@ namespace BeatSaverDl.Models
                     DownloadProgress?.Invoke(this, 0);
                 }
             }
+            if (!Complete)
+            {
+                DownloadFailed?.Invoke(this);
+            }
         }
 
         private void NotifyBlockDownload()
@@ -108,6 +117,11 @@ namespace BeatSaverDl.Models
                 LastNotify = DateTime.Now;
                 DownloadProgress?.Invoke(this, (Downloaded / (float)DownloadSize) * 100f);
             }
+        }
+
+        ~MapDownloadTask()
+        {
+            TokenSource?.Dispose();
         }
     }
 }

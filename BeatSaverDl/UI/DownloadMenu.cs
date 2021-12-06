@@ -1,15 +1,14 @@
-﻿using BeatSaverDl.APIs.BeatSaver;
-using BeatSaverDl.Models;
-using BeatSaverDl.UI;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Drawing;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using BeatSaverDl.APIs.BeatSaver;
+using BeatSaverDl.Models;
+using BeatSaverDl.UI;
 
 namespace BeatSaverDl
 {
