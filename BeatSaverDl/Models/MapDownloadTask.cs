@@ -77,7 +77,16 @@ namespace BeatSaverDl.Models
                         }
                     }
 
-                    var outDirName = Path.Combine(Program.BeatSaberPath, "Beat Saber_Data", "CustomLevels", $"{Map.ID} ({Map.Name} - {Map.Author})");
+                    // Filter out forbiden file name characters 
+
+                    var forbiddenCharacters = @"<>:""/\|?*";
+                    var dirName = $"{Map.ID} ({Map.Name} - {Map.Author})";
+                    foreach (var forbiddenCharacter in forbiddenCharacters)
+                    {
+                        dirName = dirName.Replace(forbiddenCharacter.ToString(), string.Empty);
+                    }
+
+                    var outDirName = Path.Combine(Program.BeatSaberPath, "Beat Saber_Data", "CustomLevels", dirName);
 
                     if (Directory.Exists(outDirName))
                     {
